@@ -1,4 +1,7 @@
 from neo4j.v1 import GraphDatabase, basic_auth, Node,Relationship, Path
+from sets import Set
+import json
+
 
 class Neo4jWrapper:
     driver = None
@@ -17,9 +20,9 @@ class Neo4jWrapper:
     def graphTraversalQuery(self, query):
         self.session = self.driver.session()
         result = self.session.run(query)
-        node = []
-        relationship = []
-        path = []
+        node = Set()
+        relationship = Set()
+        path = Set()
         for record in result:
             for key in record.keys():
                 if isinstance(record[key],Node):
@@ -27,7 +30,7 @@ class Neo4jWrapper:
                     n['id'] = record[key].id
                     n['label'] = list(record[key].labels)
                     n['properties'] = record[key].properties
-                    node.append(n)
+                    node.add(json.dumps(n))
                 if isinstance(record[key], Relationship):
                     r = dict()
                     r['id'] = record[key].id
@@ -35,15 +38,15 @@ class Neo4jWrapper:
                     r['end'] = record[key].end
                     r['type'] = record[key].type
                     r['properties'] = record[key].properties
-                    relationship.append(r)
+                    relationship.add(json.dumps(r))
                 if isinstance(record[key], Path):
-                    path.append(record[key])
+                    path.add(record[key])
         graph = dict()
-        graph['nodes'] = node
-        graph['relationship'] = relationship
-        graph['path'] = path
+        graph['nodes'] = list(node)
+        graph['relationship'] = list(relationship)
+        graph['path'] = list(path)
         self.session.close()
-        return graph
+        return json.dumps(graph)
 
     # return Property of node/relationship in list of JSON.
     # Only pass the query that return property and not sub-Graph
@@ -56,7 +59,7 @@ class Neo4jWrapper:
             mapping = dict()
             for key in record.keys():
                 mapping[key] = record[key]
-            list.append(mapping)
+            list.append(json.dumps(mapping))
         self.session.close()
         return list
 
